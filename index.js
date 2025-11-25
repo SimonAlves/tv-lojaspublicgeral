@@ -10,46 +10,61 @@ const io = socketIo(server);
 app.use(express.static(__dirname));
 app.use(express.static('public'));
 
-// --- AQUI ESTÁ A MUDANÇA DE CORES ---
+// --- CONFIGURAÇÃO DAS CAMPANHAS (FOTOS E VÍDEOS MISTURADOS) ---
 let campanhas = [
-    // ID 0: Premier (AGORA AZUL para combinar com sua imagem)
+    // SLIDE 0: FOTO (Premier)
     { 
         id: 0, 
+        tipo: 'foto', // NOVO: Indica que é foto
+        arquivo: "slide1.jpg", 
         nome: "Ração Premier", 
-        img: "slide1.jpg", 
         qtd: 10, 
         ativa: true, 
-        corPrincipal: '#0055aa',   // Azul Polipet
-        corSecundaria: '#003366',  // Azul Escuro
+        corPrincipal: '#0055aa', 
+        corSecundaria: '#003366', 
         prefixo: 'PREMIER' 
     },
-    // ID 1: Special Dog (Azul/Laranja)
+    // SLIDE 1: FOTO (Special Dog)
     { 
         id: 1, 
+        tipo: 'foto',
+        arquivo: "slide2.jpg", 
         nome: "Special Dog",   
-        img: "slide2.jpg", 
         qtd: 15, 
         ativa: true, 
-        corPrincipal: '#007bff',   // Azul Royal
-        corSecundaria: '#ff6600',  // Laranja (Detalhes)
+        corPrincipal: '#007bff', 
+        corSecundaria: '#ff6600', 
         prefixo: 'SPECIAL' 
     },
-    // ID 2: Adimax (Verde)
+    // SLIDE 2: FOTO (Adimax)
     { 
         id: 2, 
+        tipo: 'foto',
+        arquivo: "slide3.jpg", 
         nome: "Adimax",        
-        img: "slide3.jpg", 
         qtd: 20, 
         ativa: true, 
-        corPrincipal: '#009933',   // Verde
-        corSecundaria: '#004411',  // Verde Escuro
+        corPrincipal: '#009933', 
+        corSecundaria: '#004411', 
         prefixo: 'ADIMAX' 
+    },
+    // SLIDE 3: VÍDEO (Farmácia Polipet) - NOVO!
+    { 
+        id: 3, 
+        tipo: 'video', // IMPORTANTE: Indica que é vídeo
+        arquivo: "video1.mp4", 
+        nome: "Farmácia Polipet",        
+        qtd: 50, // Quantidade de cupons pra esse vídeo
+        ativa: true, 
+        corPrincipal: '#cc0000', // Vermelho Farmácia
+        corSecundaria: '#ffffff', // Branco
+        prefixo: 'FARMA' 
     }
 ];
 
 let slideAtual = 0;
 
-// --- ROTAÇÃO (20s) ---
+// --- ROTAÇÃO (20 SEGUNDOS) ---
 setInterval(() => {
     slideAtual++;
     if (slideAtual >= campanhas.length) slideAtual = 0;
@@ -63,16 +78,22 @@ function gerarCodigo(prefixo) {
     return `${prefixo}-${result}`;
 }
 
-// --- HTML DA TV ---
+// --- HTML DA TV (INTELIGENTE: FOTO OU VÍDEO) ---
 const htmlTV = `
 <!DOCTYPE html>
 <html>
 <head><title>TV Polipet</title></head>
 <body style="margin:0; background:black; overflow:hidden; font-family:Arial; transition: background 0.5s;">
     <div style="display:flex; height:100vh;">
+        
         <div style="flex:3; background:#ccc; display:flex; align-items:center; justify-content:center; overflow:hidden;" id="bgEsq">
-            <img id="fotoProd" src="" style="width:100%; height:100%; object-fit:contain;">
+            
+            <img id="imgDisplay" src="" style="width:100%; height:100%; object-fit:contain; display:none;">
+            
+            <video id="vidDisplay" src="" style="width:100%; height:100%; object-fit:contain; display:none;" muted playsinline></video>
+        
         </div>
+
         <div style="flex:1; background:#333; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:4px solid white; text-align:center; color:white;" id="bgDir">
             <img src="logo.png" onerror="this.style.display='none'" style="width:150px; background:white; padding:10px; border-radius:10px; margin-bottom:20px; max-width:80%;">
             <h1 id="nomeProd" style="font-size:2rem; padding:0 10px; height:80px; display:flex; align-items:center; justify-content:center;">...</h1>
@@ -90,25 +111,45 @@ const htmlTV = `
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        const imgTag = document.getElementById('imgDisplay');
+        const vidTag = document.getElementById('vidDisplay');
+
         socket.on('trocar_slide', (d) => { actualizarTela(d); });
+        
         socket.on('atualizar_qtd', (d) => {
             if(document.getElementById('nomeProd').innerText === d.nome) {
                 document.getElementById('num').innerText = d.qtd;
             }
         });
+
         function actualizarTela(d) {
-            document.getElementById('fotoProd').src = d.img;
+            // Atualiza textos e cores
             document.getElementById('nomeProd').innerText = d.nome;
             document.getElementById('num').innerText = d.qtd;
             document.getElementById('bgEsq').style.background = d.corSecundaria;
             document.getElementById('bgDir').style.background = d.corPrincipal;
+
+            // Lógica: É Vídeo ou Foto?
+            if (d.tipo === 'video') {
+                // Mostra vídeo, esconde foto
+                imgTag.style.display = 'none';
+                vidTag.style.display = 'block';
+                vidTag.src = d.arquivo;
+                vidTag.play(); // Dá play
+            } else {
+                // Mostra foto, esconde vídeo
+                vidTag.pause(); // Para o vídeo anterior
+                vidTag.style.display = 'none';
+                imgTag.style.display = 'block';
+                imgTag.src = d.arquivo;
+            }
         }
     </script>
 </body>
 </html>
 `;
 
-// --- HTML MOBILE (DATA CORRIGIDA E CORES DINÂMICAS) ---
+// --- HTML MOBILE (INTELIGENTE PARA FOTO OU VIDEO) ---
 const htmlMobile = `
 <!DOCTYPE html>
 <html>
@@ -116,7 +157,7 @@ const htmlMobile = `
 <style>
     body { font-family: Arial, sans-serif; text-align:center; padding:20px; background:#f4f4f4; transition: background 0.3s; }
     .btn-pegar { width:100%; padding:20px; color:white; border:none; border-radius:50px; font-size:20px; margin-top:20px; font-weight:bold; transition: background 0.3s; }
-    .img-prod { width:100%; max-width:300px; border-radius:10px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .midia-prod { width:100%; max-width:300px; border-radius:10px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     
     .ticket-white { background:white; padding:20px; border-radius:15px; margin-top:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
     .ticket-header-bar { height: 15px; position: absolute; top: 0; left: 0; width: 100%; }
@@ -128,7 +169,10 @@ const htmlMobile = `
 <body>
     <div id="telaPegar">
         <h3 style="color:#555; margin-bottom:10px;">OFERTA DO MOMENTO:</h3>
-        <img id="fotoM" src="" class="img-prod">
+        
+        <img id="fotoM" src="" class="midia-prod" style="display:none;">
+        <video id="vidM" src="" class="midia-prod" style="display:none;" muted playsinline autoplay loop></video>
+
         <h2 id="nomeM" style="color:#333; margin:10px 0;">...</h2>
         <button onclick="resgatar()" id="btnResgatar" class="btn-pegar" style="background:#333;">GARANTIR AGORA</button>
         <p style="font-size:12px; color:gray; margin-top:10px;">Restam: <strong id="qtdM">--</strong> unidades</p>
@@ -157,7 +201,21 @@ const htmlMobile = `
 
         socket.on('trocar_slide', (d) => {
             ofertaAtual = d;
-            document.getElementById('fotoM').src = d.img;
+            
+            // Lógica Foto vs Video no Celular
+            const imgTag = document.getElementById('fotoM');
+            const vidTag = document.getElementById('vidM');
+            
+            if (d.tipo === 'video') {
+                imgTag.style.display = 'none';
+                vidTag.style.display = 'block';
+                vidTag.src = d.arquivo;
+            } else {
+                vidTag.style.display = 'none';
+                imgTag.style.display = 'block';
+                imgTag.src = d.arquivo;
+            }
+
             document.getElementById('nomeM').innerText = d.nome;
             document.getElementById('qtdM').innerText = d.qtd;
             document.getElementById('btnResgatar').style.background = d.corPrincipal;
@@ -196,17 +254,16 @@ const htmlMobile = `
 
 // --- ADMIN ---
 const htmlAdmin = `
-<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;"><h1>🎛️ Controle</h1><div id="paineis"></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();socket.on('dados_admin',(lista)=>{const div=document.getElementById('paineis');div.innerHTML="";lista.forEach((c,index)=>{div.innerHTML+=\`<div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 5px solid \${c.ativa?'#0f0':'#f00'}"><h3>SLIDE \${index+1} (\${c.img})</h3>Nome: <input id="nome_\${index}" value="\${c.nome}" style="width:100px;"> Qtd: <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:50px;"> <button onclick="salvar(\${index})" style="padding:5px; background:#00cc00; color:white;">Salvar</button></div>\`});});function salvar(id){const n=document.getElementById('nome_'+id).value;const q=document.getElementById('qtd_'+id).value;socket.emit('admin_update',{id:id,nome:n,qtd:q});alert('Salvo!');}</script></body></html>
+<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;"><h1>🎛️ Controle</h1><div id="paineis"></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();socket.on('dados_admin',(lista)=>{const div=document.getElementById('paineis');div.innerHTML="";lista.forEach((c,index)=>{div.innerHTML+=\`<div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 5px solid \${c.ativa?'#0f0':'#f00'}"><h3>SLIDE \${index+1} (\${c.nome})</h3>Qtd: <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:50px;"> <button onclick="salvar(\${index})" style="padding:5px; background:#00cc00; color:white;">Salvar</button></div>\`});});function salvar(id){const q=document.getElementById('qtd_'+id).value;socket.emit('admin_update',{id:id,qtd:q});alert('Salvo!');}</script></body></html>
 `;
 
-// --- ROTAS ---
+// --- ROTAS E SOCKET ---
 app.get('/tv', (req, res) => res.send(htmlTV));
 app.get('/admin', (req, res) => res.send(htmlAdmin));
 app.get('/mobile', (req, res) => res.send(htmlMobile));
 app.get('/', (req, res) => res.redirect('/tv'));
 app.get('/qrcode', (req, res) => { const url = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/mobile`; QRCode.toDataURL(url, (e, s) => res.send(s)); });
 
-// --- SOCKET ---
 io.on('connection', (socket) => {
     socket.emit('trocar_slide', campanhas[slideAtual]);
     socket.emit('dados_admin', campanhas);
@@ -226,7 +283,11 @@ io.on('connection', (socket) => {
             io.emit('dados_admin', campanhas);
         }
     });
-    socket.on('admin_update', (d) => { campanhas[d.id].nome=d.nome; campanhas[d.id].qtd=parseInt(d.qtd); io.emit('dados_admin',campanhas); if(slideAtual===d.id)io.emit('trocar_slide',campanhas[d.id]); });
+    socket.on('admin_update', (d) => { 
+        campanhas[d.id].qtd = parseInt(d.qtd); 
+        io.emit('dados_admin', campanhas); 
+        if(slideAtual === d.id) io.emit('trocar_slide', campanhas[d.id]); 
+    });
 });
 
 const PORT = process.env.PORT || 3000;
