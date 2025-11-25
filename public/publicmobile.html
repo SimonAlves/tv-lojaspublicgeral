@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<body style="font-family:Arial; text-align:center; padding:20px; background:#f4f4f4;">
+    <img src="logo.png" width="100">
+    <h2 id="prodTitle">Carregando...</h2>
+    
+    <div id="box">
+        <button onclick="resgatar()" style="width:100%; padding:20px; font-size:1.2rem; background:#ce0000; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold; margin-top:20px;">PEGAR MEU CUPOM</button>
+    </div>
+
+    <h1 id="msg" style="display:none; color:green; border:2px solid green; padding:20px; margin-top:20px; background:white; border-radius:10px;">✅ CUPOM GARANTIDO!</h1>
+    
+    <div id="esgotado" style="display:none; color:red; margin-top:20px;">
+        <h1>Esgotado 😢</h1>
+        <p>Tente ser mais rápido na próxima!</p>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        function resgatar() { socket.emit('resgatar'); }
+        
+        socket.on('status', (d) => {
+            document.getElementById('prodTitle').innerText = d.produto;
+            if(d.restante <= 0 || !d.ativa) {
+                document.getElementById('box').style.display = 'none';
+                document.getElementById('esgotado').style.display = 'block';
+            }
+        });
+        socket.on('sucesso', () => {
+            document.getElementById('box').style.display='none';
+            document.getElementById('msg').style.display='block';
+        });
+    </script>
+</body>
+</html>

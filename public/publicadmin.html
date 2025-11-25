@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head><title>Painel Admin Polipet</title></head>
+<body style="font-family:Arial; padding:20px; background:#222; color:white; max-width:600px; margin:0 auto;">
+    <h1>🎛️ Painel de Controle (100 Lojas)</h1>
+    
+    <div style="background:#444; padding:20px; border-radius:10px;">
+        <label>Nome do Produto:</label><br>
+        <input id="prod" style="width:90%; padding:10px; margin-bottom:15px; font-size:1.1rem;"><br>
+        
+        <label>Cupons Disponíveis:</label><br>
+        <input id="qtd" type="number" style="width:100px; padding:10px; font-size:1.1rem; margin-bottom:15px;">
+        
+        <br>
+        <button onclick="enviar()" style="background:#00cc00; color:white; padding:15px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; width:100%;">💾 ATUALIZAR TVS AGORA</button>
+        <br><br>
+        <button onclick="parar()" style="background:#cc0000; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; width:100%;">🛑 ENCERRAR CAMPANHA</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('status', (d) => {
+            document.getElementById('prod').value = d.produto;
+            if(document.activeElement !== document.getElementById('qtd')) document.getElementById('qtd').value = d.restante;
+        });
+        function enviar() {
+            socket.emit('admin_alterar', {
+                produto: document.getElementById('prod').value,
+                restante: document.getElementById('qtd').value,
+                ativa: true
+            });
+            alert("Comando enviado para todas as lojas!");
+        }
+        function parar() {
+            if(confirm("Parar campanha em todas as lojas?")) socket.emit('admin_alterar', { ativa: false });
+        }
+    </script>
+</body>
+</html>
