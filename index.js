@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Configuração para achar arquivos na raiz e na pasta public
+// Configuração para achar arquivos
 app.use(express.static(__dirname));
 app.use(express.static('public'));
 
