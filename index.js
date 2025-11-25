@@ -7,181 +7,194 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Configuração para achar arquivos
 app.use(express.static(__dirname));
 app.use(express.static('public'));
 
-let campanha = {
-    produto: "Ração Premier",
-    total: 10,
-    restante: 10,
-    ativa: true
-};
+// --- CONFIGURAÇÃO DAS 3 CAMPANHAS ---
+let campanhas = [
+    { id: 0, nome: "Ração Premier", img: "slide1.jpg", qtd: 10, ativa: true },
+    { id: 1, nome: "Special Dog",   img: "slide2.jpg", qtd: 15, ativa: true },
+    { id: 2, nome: "Adimax",        img: "slide3.jpg", qtd: 20, ativa: true }
+];
 
-// --- FUNÇÃO PARA GERAR VOUCHER ÚNICO ---
+let slideAtual = 0; // Começa no slide 0
+
+// --- ROTAÇÃO AUTOMÁTICA (20 SEGUNDOS) ---
+setInterval(() => {
+    slideAtual++;
+    if (slideAtual >= campanhas.length) {
+        slideAtual = 0; // Volta pro primeiro
+    }
+    // Avisa todo mundo para mudar de tela
+    io.emit('trocar_slide', campanhas[slideAtual]);
+}, 20000); // 20000 ms = 20 segundos
+
+// --- FUNÇÃO CÓDIGO ÚNICO ---
 function gerarCodigo() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let result = '';
     for (let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-    return `PREMIER-${result}`;
+    return `VOUCHER-${result}`;
 }
 
-// --- HTML DA TV (IGUAL AO ANTERIOR) ---
+// --- HTML DA TV (RECEBE ORDENS DE TROCA) ---
 const htmlTV = `
 <!DOCTYPE html>
 <html>
 <head><title>TV Polipet</title></head>
-<body style="margin:0; background:black; overflow:hidden; font-family:Arial;">
+<body style="margin:0; background:black; overflow:hidden; font-family:Arial; transition: background 0.5s;">
     <div style="display:flex; height:100vh;">
+        
         <div style="flex:3; background:#0055aa; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-            <img src="premier1.jpg" style="width:100%; height:100%; object-fit:contain;" 
-                 onerror="document.getElementById('erro').style.display='block'">
-            <h1 id="erro" style="display:none; color:white; font-family:sans-serif;">FALTA 'premier1.jpg'</h1>
+            <img id="fotoProd" src="" style="width:100%; height:100%; object-fit:contain;">
         </div>
+
         <div style="flex:1; background:#003366; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:4px solid white; text-align:center; color:white;">
+            
             <img src="logo.png" onerror="this.style.display='none'" style="width:150px; background:white; padding:10px; border-radius:10px; margin-bottom:20px; max-width:80%;">
-            <h1 id="nomeProd" style="font-size:2rem; padding:0 10px;">CARREGANDO...</h1>
-            <h2 style="color:#00ff00; font-weight:bold;">OFERTA EXCLUSIVA</h2>
+            
+            <h1 id="nomeProd" style="font-size:2rem; padding:0 10px; height:80px; display:flex; align-items:center; justify-content:center;">...</h1>
+            <h2 style="color:#00ff00; font-weight:bold;">OFERTA RELÂMPAGO</h2>
+            
             <div style="background:white; padding:10px; border-radius:10px; margin-top:10px;">
                 <img id="qr" src="qrcode.png" style="width:180px; display:block;" 
                      onerror="this.onerror=null; fetch('/qrcode').then(r=>r.text()).then(u=>this.src=u);">
             </div>
+            
             <p style="margin-top:10px; font-weight:bold;">ESCANEIE AGORA</p>
+            
             <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.3); width:80%; padding-top:10px;">
                 <span>RESTAM APENAS:</span><br>
                 <span id="num" style="font-size:5rem; color:#fff700; font-weight:bold; line-height:1;">--</span>
             </div>
         </div>
     </div>
-    <div id="fim" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; color:white; align-items:center; justify-content:center; flex-direction:column; z-index:99;">
-        <h1>OFERTA ENCERRADA</h1>
-    </div>
+    
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        socket.on('status', (d) => {
-            document.getElementById('nomeProd').innerText = d.produto;
-            document.getElementById('num').innerText = d.restante;
-            document.getElementById('fim').style.display = (!d.ativa || d.restante <= 0) ? 'flex' : 'none';
+        
+        // Ouve quando o servidor manda trocar o slide
+        socket.on('trocar_slide', (dados) => {
+            atualizarTela(dados);
         });
+
+        // Ouve quando alguém pega um cupom (atualiza só o número)
+        socket.on('atualizar_qtd', (dados) => {
+            // Só atualiza se o cupom pego for do slide que estou vendo agora
+            const slideNaTela = document.getElementById('nomeProd').innerText;
+            if(slideNaTela === dados.nome) {
+                document.getElementById('num').innerText = dados.qtd;
+            }
+        });
+
+        function atualizarTela(d) {
+            document.getElementById('fotoProd').src = d.img;
+            document.getElementById('nomeProd').innerText = d.nome;
+            document.getElementById('num').innerText = d.qtd;
+        }
     </script>
 </body>
 </html>
 `;
 
-// --- HTML MOBILE (CORRIGIDO PARA MOSTRAR FOTO DA RAÇÃO) ---
+// --- HTML MOBILE (SEMPRE MOSTRA A OFERTA ATUAL) ---
 const htmlMobile = `
 <!DOCTYPE html>
 <html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align:center; padding:20px; background:#f4f4f4; margin:0; }
-    .btn-pegar { width:100%; padding:20px; background:#E60012; color:white; border:none; border-radius:50px; font-size:22px; margin-top:20px; font-weight:bold; box-shadow: 0 5px 15px rgba(230,0,18,0.4); transition: transform 0.2s; }
-    .btn-pegar:active { transform: scale(0.98); }
-    
-    /* FOTO DO PRODUTO NO CELULAR */
-    .foto-produto {
-        width: 100%;
-        max-width: 300px;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        margin-bottom: 15px;
-    }
-
-    /* TICKET */
-    .ticket-white {
-        background: white;
-        border-radius: 15px;
-        padding: 25px 20px;
-        position: relative;
-        border: 2px dashed #E60012;
-        margin-top: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-    .ticket-title { color: #E60012; font-size: 28px; font-weight: 900; margin: 0; text-transform: uppercase; }
-    .codigo-box { background: #f9f9f9; border: 2px solid #E60012; border-radius: 10px; padding: 15px; margin: 20px 0; }
-    .codigo-texto { font-size: 32px; color: #E60012; font-weight: bold; letter-spacing: 3px; margin:0; font-family: monospace; }
-    
-    /* BOTÃO IMPRIMIR */
-    .btn-print {
-        background: #333; color: white; border: none; padding: 15px; border-radius: 10px;
-        margin-top: 20px; font-size: 16px; cursor: pointer; width: 100%;
-    }
-
-    @media print {
-        body { background: white; padding: 0; margin: 0; }
-        #telaPegar, #esgotado, .no-print, h3, .msg-security { display: none !important; }
-        .ticket-white { box-shadow: none; border: 3px solid black; margin: 0; width: 100%; }
-        .codigo-texto { color: black; border: 2px solid black; padding: 10px; }
-        .ticket-title { color: black; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    }
+    body { font-family: Arial, sans-serif; text-align:center; padding:20px; background:#f4f4f4; }
+    .btn-pegar { width:100%; padding:20px; background:#E60012; color:white; border:none; border-radius:50px; font-size:20px; margin-top:20px; font-weight:bold; }
+    .img-prod { width:100%; max-width:300px; border-radius:10px; margin-bottom:10px; }
+    .ticket-white { background:white; padding:20px; border:2px dashed #0055aa; border-radius:10px; margin-top:20px; }
+    .codigo-texto { font-size:30px; color:#0055aa; font-weight:bold; letter-spacing:2px; }
+    .no-print { display: block; }
+    @media print { .no-print { display:none; } body { background:white; } .ticket-white { border:2px solid black; } .codigo-texto { color:black; } }
 </style>
-
 <body>
     <div id="telaPegar">
-        
-        <img src="premier1.jpg" class="foto-produto" onerror="this.style.display='none'">
-        
-        <h2 id="prodTitle" style="color:#333; margin-bottom:0; margin-top:0;">...</h2>
-        <div id="boxBtn">
-            <button onclick="resgatar()" class="btn-pegar">GARANTIR VOUCHER</button>
-            <p style="color:gray; font-size:12px; margin-top:15px;">Toque para gerar seu código único</p>
-        </div>
+        <h3 style="color:#555;">OFERTA DO MOMENTO:</h3>
+        <img id="fotoM" src="" class="img-prod">
+        <h2 id="nomeM" style="color:#333;">...</h2>
+        <p>Restam: <strong id="qtdM" style="color:red;">--</strong></p>
+        <button onclick="resgatar()" class="btn-pegar">GARANTIR AGORA</button>
     </div>
 
     <div id="telaVoucher" style="display:none;">
-        <h3 style="color:#E60012; margin-bottom:10px;" class="no-print">🎉 VOUCHER GARANTIDO!</h3>
-        
+        <h2 style="color:#0055aa;" class="no-print">PARABÉNS!</h2>
         <div class="ticket-white">
-            <h1 class="ticket-title">VALE OFERTA</h1>
-            <p style="color:#333; margin: 5px 0 20px 0;">Polipet Oficial</p>
-            <div style="border-top: 2px dashed #ccc; margin: 20px -20px;"></div>
-            <p style="font-size:12px; color:gray; text-transform: uppercase;">Código de validação:</p>
-            
-            <div class="codigo-box">
-                <h1 id="codigoGerado" class="codigo-texto">...</h1>
-            </div>
-
-            <div style="color: #666; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                Gerado em: <span id="dataHora" style="font-weight:bold; color:#333;"></span><br>
-                <span style="color:#E60012; font-weight:bold;">Válido hoje.</span>
-            </div>
+            <h3>VALE OFERTA</h3>
+            <h2 id="voucherNome" style="color:#E60012;">...</h2>
+            <hr>
+            <p>CÓDIGO:</p>
+            <div class="codigo-texto" id="codGerado">...</div>
+            <p style="font-size:12px;">Válido Hoje - <span id="dataHora"></span></p>
         </div>
-
-        <button onclick="window.print()" class="btn-print no-print">🖨️ IMPRIMIR / PDF</button>
-        <p class="msg-security no-print" style="font-size:12px; color:gray; margin-top:20px;">Mostre ao caixa.</p>
-    </div>
-
-    <div id="esgotado" style="display:none; color:red; margin-top:30px;">
-        <h1>Oferta Esgotada 😢</h1>
+        <button onclick="window.print()" class="btn-pegar no-print" style="background:#333;">IMPRIMIR</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        function resgatar() { socket.emit('resgatar'); }
-        socket.on('status', d => {
-            document.getElementById('prodTitle').innerText = d.produto;
-            if((d.restante <= 0 || !d.ativa) && document.getElementById('telaVoucher').style.display === 'none') {
-                document.getElementById('telaPegar').style.display='none';
-                document.getElementById('esgotado').style.display='block';
-            }
+        let ofertaAtual = null;
+
+        socket.on('trocar_slide', (d) => {
+            ofertaAtual = d;
+            document.getElementById('fotoM').src = d.img;
+            document.getElementById('nomeM').innerText = d.nome;
+            document.getElementById('qtdM').innerText = d.qtd;
         });
-        socket.on('sucesso', (cod) => {
+
+        // Pede o status atual assim que entra
+        socket.emit('pedir_atualizacao');
+
+        function resgatar() {
+            if(ofertaAtual) {
+                socket.emit('resgatar_oferta', ofertaAtual.id);
+            }
+        }
+
+        socket.on('sucesso', (dados) => {
             document.getElementById('telaPegar').style.display='none';
             document.getElementById('telaVoucher').style.display='block';
-            document.getElementById('codigoGerado').innerText = cod;
-            document.getElementById('dataHora').innerText = new Date().toLocaleString('pt-BR');
+            document.getElementById('voucherNome').innerText = dados.produto;
+            document.getElementById('codGerado').innerText = dados.codigo;
+            document.getElementById('dataHora').innerText = new Date().toLocaleTimeString();
         });
     </script>
 </body>
 </html>
 `;
 
-// --- ADMIN ---
+// --- ADMIN (CONTROLA OS 3 SLIDES) ---
 const htmlAdmin = `
-<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#333; color:white; text-align:center;"><h1>🎛️ Admin</h1><div style="background:#444; padding:20px; border-radius:10px; max-width:500px; margin:0 auto;"><input id="prod" style="width:90%; padding:10px; margin-bottom:10px;"><br><input id="qtd" type="number" style="width:100px; padding:10px; margin-bottom:20px;"><br><button onclick="enviar()" style="background:#00cc00; color:white; padding:15px; width:100%;">ATUALIZAR</button><br><br><button onclick="parar()" style="background:#cc0000; color:white; padding:10px; width:100%;">PARAR</button></div><script src="/socket.io/socket.io.js"></script><script>const socket = io(); socket.on('status', d => { document.getElementById('prod').value = d.produto; if(document.activeElement !== document.getElementById('qtd')) document.getElementById('qtd').value = d.restante; }); function enviar() { socket.emit('admin_alterar', { produto: document.getElementById('prod').value, restante: document.getElementById('qtd').value, ativa: true }); alert('Ok!'); } function parar() { if(confirm('Parar?')) socket.emit('admin_alterar', { ativa: false }); }</script></body></html>
+<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;">
+<h1>🎛️ Controle de Slides</h1>
+<div id="paineis"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    socket.on('dados_admin', (lista) => {
+        const div = document.getElementById('paineis');
+        div.innerHTML = "";
+        lista.forEach((c, index) => {
+            div.innerHTML += \`
+            <div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 5px solid \${c.ativa ? '#0f0' : '#f00'}">
+                <h3>SLIDE \${index + 1} (\${c.img})</h3>
+                Nome: <input id="nome_\${index}" value="\${c.nome}" style="width:100px;">
+                Qtd: <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:50px;">
+                <button onclick="salvar(\${index})" style="padding:5px; background:#00cc00; color:white;">Salvar</button>
+            </div>\`;
+        });
+    });
+    function salvar(id) {
+        const n = document.getElementById('nome_'+id).value;
+        const q = document.getElementById('qtd_'+id).value;
+        socket.emit('admin_update', { id: id, nome: n, qtd: q });
+        alert('Slide ' + (id+1) + ' Atualizado!');
+    }
+</script></body></html>
 `;
 
 // --- ROTAS ---
@@ -191,26 +204,44 @@ app.get('/mobile', (req, res) => res.send(htmlMobile));
 app.get('/', (req, res) => res.redirect('/tv'));
 app.get('/qrcode', (req, res) => { const url = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/mobile`; QRCode.toDataURL(url, (e, s) => res.send(s)); });
 
-// --- SOCKET ---
-io.on('connection', s => { 
-    s.emit('status', campanha); 
-    s.on('resgatar', () => { 
-        if(campanha.ativa && campanha.restante > 0) { 
-            campanha.restante--; 
-            if(campanha.restante===0) campanha.ativa=false; 
-            const cod = gerarCodigo(); 
-            io.emit('status', campanha); 
-            s.emit('sucesso', cod); 
-        } 
-    }); 
-    s.on('admin_alterar', d => { 
-        if(d.produto) campanha.produto=d.produto; 
-        if(d.restante) campanha.restante=parseInt(d.restante); 
-        if(d.ativa!==undefined) campanha.ativa=d.ativa; 
-        io.emit('status', campanha); 
-    }); 
+// --- SOCKET LÓGICA ---
+io.on('connection', (socket) => {
+    // Assim que conecta, manda o slide atual
+    socket.emit('trocar_slide', campanhas[slideAtual]);
+    // Manda dados pro admin
+    socket.emit('dados_admin', campanhas);
+
+    socket.on('pedir_atualizacao', () => {
+        socket.emit('trocar_slide', campanhas[slideAtual]);
+    });
+
+    // Cliente resgatando
+    socket.on('resgatar_oferta', (idDaOferta) => {
+        let camp = campanhas[idDaOferta];
+        if (camp && camp.qtd > 0) {
+            camp.qtd--;
+            // Atualiza o número na TV na hora (se ela estiver mostrando esse slide)
+            io.emit('atualizar_qtd', camp);
+            // Se o slide atual for esse, força atualização visual
+            if(slideAtual === idDaOferta) io.emit('trocar_slide', camp);
+            
+            // Manda voucher pro cliente
+            socket.emit('sucesso', { codigo: gerarCodigo(), produto: camp.nome });
+            
+            // Atualiza Admin
+            io.emit('dados_admin', campanhas);
+        }
+    });
+
+    // Admin salvando
+    socket.on('admin_update', (d) => {
+        campanhas[d.id].nome = d.nome;
+        campanhas[d.id].qtd = parseInt(d.qtd);
+        io.emit('dados_admin', campanhas);
+        // Se for o slide atual, atualiza a TV
+        if(slideAtual === d.id) io.emit('trocar_slide', campanhas[d.id]);
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log('Rodando'));
-
