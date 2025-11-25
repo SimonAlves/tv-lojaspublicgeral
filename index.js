@@ -10,7 +10,7 @@ const io = socketIo(server);
 app.use(express.static(__dirname));
 app.use(express.static('public'));
 
-// --- CONFIGURAÇÃO DAS 4 CAMPANHAS (3 FOTOS + 1 VÍDEO) ---
+// --- CONFIGURAÇÃO DAS CAMPANHAS ---
 let campanhas = [
     // SLIDE 0: Premier (Azul) - FOTO
     { 
@@ -36,7 +36,7 @@ let campanhas = [
         corSecundaria: '#ff6600', 
         prefixo: 'SPECIAL' 
     },
-    // SLIDE 2: Adimax (Verde) - FOTO
+    // SLIDE 2: Adimax (Verde Escuro) - FOTO
     { 
         id: 2, 
         tipo: 'foto',
@@ -44,21 +44,21 @@ let campanhas = [
         nome: "Adimax",        
         qtd: 20, 
         ativa: true, 
-        corPrincipal: '#009933', 
+        corPrincipal: '#006400', 
         corSecundaria: '#004411', 
         prefixo: 'ADIMAX' 
     },
-    // SLIDE 3: Farmácia Polipet - VÍDEO
+    // SLIDE 3: Premier Nattu (NOVO!) - VÍDEO
     { 
         id: 3, 
         tipo: 'video', 
-        arquivo: "video1.mp4", 
-        nome: "Farmácia Polipet",        
-        qtd: 50, 
+        arquivo: "nattu.mp4",    // TEM QUE SUBIR ESSE ARQUIVO NO GITHUB
+        nome: "Premier Nattu",        
+        qtd: 30, 
         ativa: true, 
-        corPrincipal: '#cc0000', 
-        corSecundaria: '#ffffff', 
-        prefixo: 'FARMA' 
+        corPrincipal: '#6aa84f', // Verde Claro "Natural"
+        corSecundaria: '#ffffff', // Branco
+        prefixo: 'NATTU' 
     }
 ];
 
@@ -78,7 +78,7 @@ function gerarCodigo(prefixo) {
     return `${prefixo}-${result}`;
 }
 
-// --- HTML DA TV (INTELIGENTE: FOTO OU VÍDEO) ---
+// --- HTML DA TV (INTELIGENTE) ---
 const htmlTV = `
 <!DOCTYPE html>
 <html>
@@ -250,7 +250,7 @@ const htmlMobile = `
 </html>
 `;
 
-// --- ADMIN (CORRIGIDO PARA NÃO DAR ERRO) ---
+// --- ADMIN ---
 const htmlAdmin = `
 <!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;"><h1>🎛️ Controle</h1><div id="paineis"></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();socket.on('dados_admin',(lista)=>{const div=document.getElementById('paineis');div.innerHTML="";lista.forEach((c,index)=>{div.innerHTML+=\`<div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 5px solid \${c.ativa?'#0f0':'#f00'}"><h3>SLIDE \${index+1} (\${c.nome})</h3>Qtd: <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:50px;"> <button onclick="salvar(\${index})" style="padding:5px; background:#00cc00; color:white;">Salvar</button></div>\`});});function salvar(id){const q=document.getElementById('qtd_'+id).value;socket.emit('admin_update',{id:id,qtd:q});alert('Salvo!');}</script></body></html>
 `;
