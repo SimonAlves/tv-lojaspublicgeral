@@ -10,14 +10,41 @@ const io = socketIo(server);
 app.use(express.static(__dirname));
 app.use(express.static('public'));
 
-// --- CONFIGURAÇÃO DAS 3 CAMPANHAS ---
+// --- AQUI ESTÁ A MUDANÇA DE CORES ---
 let campanhas = [
-    // ID 0: Premier (Vermelho)
-    { id: 0, nome: "Ração Premier", img: "slide1.jpg", qtd: 10, ativa: true, corPrincipal: '#E60012', corSecundaria: '#b3000e', prefixo: 'PREMIER' },
-    // ID 1: Special Dog (Azul)
-    { id: 1, nome: "Special Dog",   img: "slide2.jpg", qtd: 15, ativa: true, corPrincipal: '#0055aa', corSecundaria: '#003366', prefixo: 'SPECIAL' },
+    // ID 0: Premier (AGORA AZUL para combinar com sua imagem)
+    { 
+        id: 0, 
+        nome: "Ração Premier", 
+        img: "slide1.jpg", 
+        qtd: 10, 
+        ativa: true, 
+        corPrincipal: '#0055aa',   // Azul Polipet
+        corSecundaria: '#003366',  // Azul Escuro
+        prefixo: 'PREMIER' 
+    },
+    // ID 1: Special Dog (Azul/Laranja)
+    { 
+        id: 1, 
+        nome: "Special Dog",   
+        img: "slide2.jpg", 
+        qtd: 15, 
+        ativa: true, 
+        corPrincipal: '#007bff',   // Azul Royal
+        corSecundaria: '#ff6600',  // Laranja (Detalhes)
+        prefixo: 'SPECIAL' 
+    },
     // ID 2: Adimax (Verde)
-    { id: 2, nome: "Adimax",        img: "slide3.jpg", qtd: 20, ativa: true, corPrincipal: '#009933', corSecundaria: '#004411', prefixo: 'ADIMAX' }
+    { 
+        id: 2, 
+        nome: "Adimax",        
+        img: "slide3.jpg", 
+        qtd: 20, 
+        ativa: true, 
+        corPrincipal: '#009933',   // Verde
+        corSecundaria: '#004411',  // Verde Escuro
+        prefixo: 'ADIMAX' 
+    }
 ];
 
 let slideAtual = 0;
@@ -81,7 +108,7 @@ const htmlTV = `
 </html>
 `;
 
-// --- HTML MOBILE (DATA CORRIGIDA) ---
+// --- HTML MOBILE (DATA CORRIGIDA E CORES DINÂMICAS) ---
 const htmlMobile = `
 <!DOCTYPE html>
 <html>
@@ -143,11 +170,9 @@ const htmlMobile = `
         socket.on('sucesso', (dados) => {
             document.getElementById('telaPegar').style.display='none';
             document.getElementById('telaVoucher').style.display='block';
-            
             document.getElementById('voucherNome').innerText = dados.produto;
             document.getElementById('codGerado').innerText = dados.codigo;
             
-            // --- CORREÇÃO DA DATA E HORA AQUI ---
             const agora = new Date();
             const dataF = agora.toLocaleDateString('pt-BR');
             const horaF = agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
@@ -181,6 +206,7 @@ app.get('/mobile', (req, res) => res.send(htmlMobile));
 app.get('/', (req, res) => res.redirect('/tv'));
 app.get('/qrcode', (req, res) => { const url = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/mobile`; QRCode.toDataURL(url, (e, s) => res.send(s)); });
 
+// --- SOCKET ---
 io.on('connection', (socket) => {
     socket.emit('trocar_slide', campanhas[slideAtual]);
     socket.emit('dados_admin', campanhas);
