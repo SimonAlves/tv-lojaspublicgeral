@@ -23,48 +23,40 @@ function gerarCodigo() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let result = '';
     for (let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Mantive PREMIER no código, mas podemos mudar para POLI se quiser
     return `PREMIER-${result}`;
 }
 
-// --- HTML DA TV (COM QR CODE HÍBRIDO) ---
+// --- HTML DA TV (IGUAL) ---
 const htmlTV = `
 <!DOCTYPE html>
 <html>
 <head><title>TV Polipet</title></head>
 <body style="margin:0; background:black; overflow:hidden; font-family:Arial;">
     <div style="display:flex; height:100vh;">
-        
         <div style="flex:3; background:#0055aa; display:flex; align-items:center; justify-content:center; overflow:hidden;">
             <img src="premier1.jpg" style="width:100%; height:100%; object-fit:contain;" 
                  onerror="document.getElementById('erro').style.display='block'">
             <h1 id="erro" style="display:none; color:white; font-family:sans-serif;">FALTA 'premier1.jpg'</h1>
         </div>
-
         <div style="flex:1; background:#003366; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:4px solid white; text-align:center; color:white;">
-            
             <img src="logo.png" onerror="this.style.display='none'" style="width:150px; background:white; padding:10px; border-radius:10px; margin-bottom:20px; max-width:80%;">
-            
             <h1 id="nomeProd" style="font-size:2rem; padding:0 10px;">CARREGANDO...</h1>
             <h2 style="color:#00ff00; font-weight:bold;">OFERTA EXCLUSIVA</h2>
-            
             <div style="background:white; padding:10px; border-radius:10px; margin-top:10px;">
                 <img id="qr" style="width:180px; display:block;" src="qrcode.png" 
                      onerror="this.onerror=null; fetch('/qrcode').then(r=>r.text()).then(u=>this.src=u);">
             </div>
-            
             <p style="margin-top:10px; font-weight:bold;">ESCANEIE AGORA</p>
-            
             <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.3); width:80%; padding-top:10px;">
                 <span>RESTAM APENAS:</span><br>
                 <span id="num" style="font-size:5rem; color:#fff700; font-weight:bold; line-height:1;">--</span>
             </div>
         </div>
     </div>
-    
     <div id="fim" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; color:white; align-items:center; justify-content:center; flex-direction:column; z-index:99;">
         <h1>OFERTA ENCERRADA</h1>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -78,37 +70,44 @@ const htmlTV = `
 </html>
 `;
 
-// --- HTML MOBILE (COM VOUCHER TIPO TICKET E IMPRESSÃO) ---
+// --- HTML MOBILE (AGORA TUDO AZUL POLIPET) ---
 const htmlMobile = `
 <!DOCTYPE html>
 <html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align:center; padding:20px; background:#f4f4f4; margin:0; }
-    .btn-pegar { width:100%; padding:20px; background:#E60012; color:white; border:none; border-radius:50px; font-size:22px; margin-top:30px; font-weight:bold; box-shadow: 0 5px 15px rgba(230,0,18,0.4); transition: transform 0.2s; }
+    
+    /* Botão Azul Polipet */
+    .btn-pegar { width:100%; padding:20px; background:#0055aa; color:white; border:none; border-radius:50px; font-size:22px; margin-top:30px; font-weight:bold; box-shadow: 0 5px 15px rgba(0, 85, 170, 0.4); transition: transform 0.2s; }
     .btn-pegar:active { transform: scale(0.98); }
     
-    /* TICKET */
+    /* TICKET AZUL */
     .ticket-white {
         background: white;
         border-radius: 15px;
         padding: 25px 20px;
         position: relative;
-        border: 2px dashed #E60012;
+        /* Borda tracejada AZUL */
+        border: 2px dashed #0055aa;
         margin-top: 20px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
-    .ticket-title { color: #E60012; font-size: 28px; font-weight: 900; margin: 0; text-transform: uppercase; }
-    .codigo-box { background: #f9f9f9; border: 2px solid #E60012; border-radius: 10px; padding: 15px; margin: 20px 0; }
-    .codigo-texto { font-size: 32px; color: #E60012; font-weight: bold; letter-spacing: 3px; margin:0; font-family: monospace; }
+    /* Título AZUL */
+    .ticket-title { color: #0055aa; font-size: 28px; font-weight: 900; margin: 0; text-transform: uppercase; }
     
-    /* BOTÃO IMPRIMIR */
+    /* Caixa do Código AZUL */
+    .codigo-box { background: #f0f8ff; border: 2px solid #0055aa; border-radius: 10px; padding: 15px; margin: 20px 0; }
+    /* Texto do Código AZUL */
+    .codigo-texto { font-size: 32px; color: #0055aa; font-weight: bold; letter-spacing: 3px; margin:0; font-family: monospace; }
+    
+    /* Botão Imprimir (Escuro) */
     .btn-print {
         background: #333; color: white; border: none; padding: 15px; border-radius: 10px;
         margin-top: 20px; font-size: 16px; cursor: pointer; width: 100%;
     }
 
-    /* REGRAS DE IMPRESSÃO (LIMPA A TELA) */
+    /* Impressão Limpa */
     @media print {
         body { background: white; padding: 0; margin: 0; }
         #telaPegar, #esgotado, .no-print, h3, .msg-security { display: none !important; }
@@ -130,7 +129,7 @@ const htmlMobile = `
     </div>
 
     <div id="telaVoucher" style="display:none;">
-        <h3 style="color:#E60012; margin-bottom:10px;" class="no-print">🎉 VOUCHER GARANTIDO!</h3>
+        <h3 style="color:#0055aa; margin-bottom:10px;" class="no-print">🎉 VOUCHER GARANTIDO!</h3>
         
         <div class="ticket-white">
             <h1 class="ticket-title">VALE OFERTA</h1>
@@ -144,7 +143,7 @@ const htmlMobile = `
 
             <div style="color: #666; font-size: 12px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                 Gerado em: <span id="dataHora" style="font-weight:bold; color:#333;"></span><br>
-                <span style="color:#E60012; font-weight:bold;">Válido hoje.</span>
+                <span style="color:#0055aa; font-weight:bold;">Válido hoje.</span>
             </div>
         </div>
 
