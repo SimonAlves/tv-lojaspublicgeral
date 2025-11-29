@@ -12,59 +12,63 @@ app.use(express.static('public'));
 
 // --- CONFIGURAÇÃO DAS CAMPANHAS ---
 let campanhas = [
-    // SLIDE 0: Premier (Azul) - FOTO
+    // SLIDE 0: Premier (Azul)
     { 
         id: 0, 
         tipo: 'foto', 
         arquivo: "slide1.jpg", 
         nome: "Ração Premier", 
         qtd: 10, 
+        totalResgates: 0,
         ativa: true, 
         corPrincipal: '#0055aa', 
         corSecundaria: '#003366', 
         prefixo: 'PREMIER' 
     },
-    // SLIDE 1: Special Dog (Azul/Laranja) - FOTO
+    // SLIDE 1: Special Dog (Azul/Laranja)
     { 
         id: 1, 
         tipo: 'foto',
         arquivo: "slide2.jpg", 
         nome: "Special Dog",   
         qtd: 15, 
+        totalResgates: 0,
         ativa: true, 
         corPrincipal: '#007bff', 
         corSecundaria: '#ff6600', 
         prefixo: 'SPECIAL' 
     },
-    // SLIDE 2: Adimax (Verde Escuro) - FOTO
+    // SLIDE 2: Adimax (Verde)
     { 
         id: 2, 
         tipo: 'foto',
         arquivo: "slide3.jpg", 
         nome: "Adimax",        
         qtd: 20, 
+        totalResgates: 0,
         ativa: true, 
-        corPrincipal: '#006400', 
+        corPrincipal: '#009933', 
         corSecundaria: '#004411', 
         prefixo: 'ADIMAX' 
     },
-    // SLIDE 3: Premier Nattu (NOVO!) - VÍDEO
+    // SLIDE 3: Premier Nattu (Vídeo)
     { 
         id: 3, 
         tipo: 'video', 
-        arquivo: "nattu.mp4",    // TEM QUE SUBIR ESSE ARQUIVO NO GITHUB
+        arquivo: "nattu.mp4", 
         nome: "Premier Nattu",        
         qtd: 30, 
+        totalResgates: 0,
         ativa: true, 
-        corPrincipal: '#6aa84f', // Verde Claro "Natural"
-        corSecundaria: '#ffffff', // Branco
+        corPrincipal: '#6aa84f', 
+        corSecundaria: '#ffffff', 
         prefixo: 'NATTU' 
     }
 ];
 
 let slideAtual = 0;
 
-// --- ROTAÇÃO AUTOMÁTICA (20 SEGUNDOS) ---
+// --- ROTAÇÃO DO CARROSSEL (20s) ---
 setInterval(() => {
     slideAtual++;
     if (slideAtual >= campanhas.length) slideAtual = 0;
@@ -78,46 +82,37 @@ function gerarCodigo(prefixo) {
     return `${prefixo}-${result}`;
 }
 
-// --- HTML DA TV (INTELIGENTE) ---
+// --- HTML DA TV ---
 const htmlTV = `
 <!DOCTYPE html>
 <html>
 <head><title>TV Polipet</title></head>
 <body style="margin:0; background:black; overflow:hidden; font-family:Arial; transition: background 0.5s;">
     <div style="display:flex; height:100vh;">
-        
         <div style="flex:3; background:#ccc; display:flex; align-items:center; justify-content:center; overflow:hidden;" id="bgEsq">
             <img id="imgDisplay" src="" style="width:100%; height:100%; object-fit:contain; display:none;">
             <video id="vidDisplay" src="" style="width:100%; height:100%; object-fit:contain; display:none;" muted playsinline></video>
         </div>
-
         <div style="flex:1; background:#333; display:flex; flex-direction:column; align-items:center; justify-content:center; border-left:4px solid white; text-align:center; color:white;" id="bgDir">
-            
             <img src="logo.png" onerror="this.style.display='none'" style="width:150px; background:white; padding:10px; border-radius:10px; margin-bottom:20px; max-width:80%;">
-            
             <h1 id="nomeProd" style="font-size:2rem; padding:0 10px; height:80px; display:flex; align-items:center; justify-content:center;">...</h1>
             <h2 style="color:#00ff00; font-weight:bold;">OFERTA RELÂMPAGO</h2>
-            
             <div style="background:white; padding:10px; border-radius:10px; margin-top:10px;">
-                <img id="qr" src="qrcode.png" style="width:180px; display:block;" 
-                     onerror="this.onerror=null; fetch('/qrcode').then(r=>r.text()).then(u=>this.src=u);">
+                <img id="qr" src="qrcode.png" style="width:180px; display:block;" onerror="this.onerror=null; fetch('/qrcode').then(r=>r.text()).then(u=>this.src=u);">
             </div>
-            
             <p style="margin-top:10px; font-weight:bold;">ESCANEIE AGORA</p>
-            
             <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.3); width:80%; padding-top:10px;">
                 <span>RESTAM APENAS:</span><br>
                 <span id="num" style="font-size:5rem; color:#fff700; font-weight:bold; line-height:1;">--</span>
             </div>
         </div>
     </div>
-    
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const imgTag = document.getElementById('imgDisplay');
         const vidTag = document.getElementById('vidDisplay');
-
+        
         socket.on('trocar_slide', (d) => { actualizarTela(d); });
         
         socket.on('atualizar_qtd', (d) => {
@@ -149,7 +144,7 @@ const htmlTV = `
 </html>
 `;
 
-// --- HTML MOBILE (CELULAR COM VÍDEO E FOTO) ---
+// --- HTML MOBILE ---
 const htmlMobile = `
 <!DOCTYPE html>
 <html>
@@ -169,10 +164,8 @@ const htmlMobile = `
 <body>
     <div id="telaPegar">
         <h3 style="color:#555; margin-bottom:10px;">OFERTA DO MOMENTO:</h3>
-        
         <img id="fotoM" src="" class="midia-prod" style="display:none;">
         <video id="vidM" src="" class="midia-prod" style="display:none;" muted playsinline autoplay loop></video>
-
         <h2 id="nomeM" style="color:#333; margin:10px 0;">...</h2>
         <button onclick="resgatar()" id="btnResgatar" class="btn-pegar" style="background:#333;">GARANTIR AGORA</button>
         <p style="font-size:12px; color:gray; margin-top:10px;">Restam: <strong id="qtdM">--</strong> unidades</p>
@@ -201,19 +194,10 @@ const htmlMobile = `
 
         socket.on('trocar_slide', (d) => {
             ofertaAtual = d;
-            const imgTag = document.getElementById('fotoM');
-            const vidTag = document.getElementById('vidM');
+            const imgTag = document.getElementById('fotoM'); const vidTag = document.getElementById('vidM');
+            if (d.tipo === 'video') { imgTag.style.display = 'none'; vidTag.style.display = 'block'; vidTag.src = d.arquivo; } 
+            else { vidTag.style.display = 'none'; imgTag.style.display = 'block'; imgTag.src = d.arquivo; }
             
-            if (d.tipo === 'video') {
-                imgTag.style.display = 'none';
-                vidTag.style.display = 'block';
-                vidTag.src = d.arquivo;
-            } else {
-                vidTag.style.display = 'none';
-                imgTag.style.display = 'block';
-                imgTag.src = d.arquivo;
-            }
-
             document.getElementById('nomeM').innerText = d.nome;
             document.getElementById('qtdM').innerText = d.qtd;
             document.getElementById('btnResgatar').style.background = d.corPrincipal;
@@ -226,6 +210,7 @@ const htmlMobile = `
         socket.on('sucesso', (dados) => {
             document.getElementById('telaPegar').style.display='none';
             document.getElementById('telaVoucher').style.display='block';
+            
             document.getElementById('voucherNome').innerText = dados.produto;
             document.getElementById('codGerado').innerText = dados.codigo;
             
@@ -252,7 +237,42 @@ const htmlMobile = `
 
 // --- ADMIN ---
 const htmlAdmin = `
-<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;"><h1>🎛️ Controle</h1><div id="paineis"></div><script src="/socket.io/socket.io.js"></script><script>const socket=io();socket.on('dados_admin',(lista)=>{const div=document.getElementById('paineis');div.innerHTML="";lista.forEach((c,index)=>{div.innerHTML+=\`<div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 5px solid \${c.ativa?'#0f0':'#f00'}"><h3>SLIDE \${index+1} (\${c.nome})</h3>Qtd: <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:50px;"> <button onclick="salvar(\${index})" style="padding:5px; background:#00cc00; color:white;">Salvar</button></div>\`});});function salvar(id){const q=document.getElementById('qtd_'+id).value;socket.emit('admin_update',{id:id,qtd:q});alert('Salvo!');}</script></body></html>
+<!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;">
+<h1>🎛️ Painel Admin</h1>
+<div id="paineis"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    socket.on('dados_admin', (lista) => {
+        const div = document.getElementById('paineis');
+        div.innerHTML = "";
+        lista.forEach((c, index) => {
+            div.innerHTML += \`
+            <div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 8px solid \${c.ativa?'#0f0':'#f00'}">
+                <h3 style="margin-top:0;">CAMPAHA \${index+1}: \${c.nome}</h3>
+                <div style="display:flex; gap:20px; align-items:center; background:#333; padding:10px; border-radius:5px;">
+                    <div>
+                        <label>Restam:</label><br>
+                        <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:60px; padding:5px; font-size:16px; font-weight:bold;">
+                    </div>
+                    <div style="border-left:1px solid #666; padding-left:20px;">
+                        <label style="color:#00ff00;">📈 JÁ PEGARAM:</label><br>
+                        <span style="font-size:24px; font-weight:bold;">\${c.totalResgates}</span>
+                    </div>
+                </div>
+                <div style="margin-top:10px;">
+                    <button onclick="salvar(\${index})" style="padding:8px 15px; background:#00cc00; color:white; border:none; border-radius:5px; cursor:pointer;">💾 SALVAR ESTOQUE</button>
+                </div>
+            </div>\`;
+        });
+    });
+    function salvar(id){
+        const q = document.getElementById('qtd_'+id).value;
+        socket.emit('admin_update', { id: id, qtd: q });
+        alert('Estoque atualizado!');
+    }
+</script>
+</body></html>
 `;
 
 // --- ROTAS ---
@@ -262,6 +282,7 @@ app.get('/mobile', (req, res) => res.send(htmlMobile));
 app.get('/', (req, res) => res.redirect('/tv'));
 app.get('/qrcode', (req, res) => { const url = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/mobile`; QRCode.toDataURL(url, (e, s) => res.send(s)); });
 
+// --- SOCKET (COM SORTEIO DOURADO) ---
 io.on('connection', (socket) => {
     socket.emit('trocar_slide', campanhas[slideAtual]);
     socket.emit('dados_admin', campanhas);
@@ -272,14 +293,34 @@ io.on('connection', (socket) => {
         let camp = campanhas[id];
         if (camp && camp.qtd > 0) {
             camp.qtd--;
+            camp.totalResgates++; // Conta +1
+            
             io.emit('atualizar_qtd', camp);
             if(slideAtual === id) io.emit('trocar_slide', camp);
+            
+            // === SORTEIO DO CUPOM DOURADO ===
+            // Gera número entre 1 e 100
+            const sorte = Math.floor(Math.random() * 100) + 1;
+            let ehGold = false;
+            let cor1 = camp.corPrincipal;
+            let cor2 = camp.corSecundaria;
+            let nomeFinal = camp.nome;
+
+            // Se cair maior que 90 (10% de chance), vira GOLD
+            if (sorte > 90) {
+                ehGold = true;
+                cor1 = '#FFD700'; // Ouro
+                cor2 = '#B8860B'; // Dark Goldenrod
+                nomeFinal = `🌟 ${camp.nome} (50% OFF)`;
+            }
+
             socket.emit('sucesso', { 
                 codigo: gerarCodigo(camp.prefixo), 
-                produto: camp.nome,
-                corPrincipal: camp.corPrincipal,
-                corSecundaria: camp.corSecundaria
+                produto: nomeFinal,
+                corPrincipal: cor1,
+                corSecundaria: cor2
             });
+            
             io.emit('dados_admin', campanhas);
         }
     });
