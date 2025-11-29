@@ -12,39 +12,39 @@ app.use(express.static('public'));
 
 // --- CONFIGURAÇÃO DAS CAMPANHAS ---
 let campanhas = [
-    // SLIDE 0: Premier (Azul)
+    // SLIDE 0: Premier (Azul) - FOTO
     { 
         id: 0, 
         tipo: 'foto', 
         arquivo: "slide1.jpg", 
         nome: "Ração Premier", 
         qtd: 10, 
-        totalResgates: 0,
+        totalResgates: 0, // CONTADOR DO BANCO DE DADOS
         ativa: true, 
         corPrincipal: '#0055aa', 
         corSecundaria: '#003366', 
         prefixo: 'PREMIER' 
     },
-    // SLIDE 1: Special Dog (Azul/Laranja)
+    // SLIDE 1: Special Dog (Azul/Laranja) - FOTO
     { 
         id: 1, 
         tipo: 'foto',
         arquivo: "slide2.jpg", 
         nome: "Special Dog",   
-        qtd: 10, 
+        qtd: 15, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#007bff', 
         corSecundaria: '#ff6600', 
         prefixo: 'SPECIAL' 
     },
-    // SLIDE 2: Adimax (Verde)
+    // SLIDE 2: Adimax (Verde) - FOTO
     { 
         id: 2, 
         tipo: 'foto',
         arquivo: "slide3.jpg", 
         nome: "Adimax",        
-        qtd: 10, 
+        qtd: 20, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#009933', 
@@ -57,7 +57,7 @@ let campanhas = [
         tipo: 'video', 
         arquivo: "nattu.mp4", 
         nome: "Premier Nattu",        
-        qtd: 10, 
+        qtd: 30, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#6aa84f', 
@@ -68,7 +68,7 @@ let campanhas = [
 
 let slideAtual = 0;
 
-// --- ROTAÇÃO DO CARROSSEL (20s) ---
+// --- ROTAÇÃO AUTOMÁTICA ---
 setInterval(() => {
     slideAtual++;
     if (slideAtual >= campanhas.length) slideAtual = 0;
@@ -153,7 +153,6 @@ const htmlMobile = `
     body { font-family: Arial, sans-serif; text-align:center; padding:20px; background:#f4f4f4; transition: background 0.3s; }
     .btn-pegar { width:100%; padding:20px; color:white; border:none; border-radius:50px; font-size:20px; margin-top:20px; font-weight:bold; transition: background 0.3s; }
     .midia-prod { width:100%; max-width:300px; border-radius:10px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    
     .ticket-white { background:white; padding:20px; border-radius:15px; margin-top:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
     .ticket-header-bar { height: 15px; position: absolute; top: 0; left: 0; width: 100%; }
     .codigo-box { background:#f9f9f9; border: 2px dashed #ccc; padding: 15px; margin: 20px 0; border-radius: 8px; }
@@ -194,10 +193,15 @@ const htmlMobile = `
 
         socket.on('trocar_slide', (d) => {
             ofertaAtual = d;
-            const imgTag = document.getElementById('fotoM'); const vidTag = document.getElementById('vidM');
-            if (d.tipo === 'video') { imgTag.style.display = 'none'; vidTag.style.display = 'block'; vidTag.src = d.arquivo; } 
-            else { vidTag.style.display = 'none'; imgTag.style.display = 'block'; imgTag.src = d.arquivo; }
+            const imgTag = document.getElementById('fotoM');
+            const vidTag = document.getElementById('vidM');
             
+            if (d.tipo === 'video') {
+                imgTag.style.display = 'none'; vidTag.style.display = 'block'; vidTag.src = d.arquivo;
+            } else {
+                vidTag.style.display = 'none'; imgTag.style.display = 'block'; imgTag.src = d.arquivo;
+            }
+
             document.getElementById('nomeM').innerText = d.nome;
             document.getElementById('qtdM').innerText = d.qtd;
             document.getElementById('btnResgatar').style.background = d.corPrincipal;
@@ -210,7 +214,6 @@ const htmlMobile = `
         socket.on('sucesso', (dados) => {
             document.getElementById('telaPegar').style.display='none';
             document.getElementById('telaVoucher').style.display='block';
-            
             document.getElementById('voucherNome').innerText = dados.produto;
             document.getElementById('codGerado').innerText = dados.codigo;
             
@@ -235,10 +238,10 @@ const htmlMobile = `
 </html>
 `;
 
-// --- ADMIN ---
+// --- ADMIN (AGORA MOSTRA O TOTAL DE CLIQUES) ---
 const htmlAdmin = `
 <!DOCTYPE html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="font-family:Arial; padding:20px; background:#222; color:white;">
-<h1>🎛️ Painel Admin</h1>
+<h1>🎛️ Controle & Vendas</h1>
 <div id="paineis"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -250,16 +253,19 @@ const htmlAdmin = `
             div.innerHTML += \`
             <div style="background:#444; padding:15px; margin-bottom:15px; border-radius:10px; border-left: 8px solid \${c.ativa?'#0f0':'#f00'}">
                 <h3 style="margin-top:0;">CAMPAHA \${index+1}: \${c.nome}</h3>
+                
                 <div style="display:flex; gap:20px; align-items:center; background:#333; padding:10px; border-radius:5px;">
                     <div>
-                        <label>Restam:</label><br>
+                        <label>Estoque (TV):</label><br>
                         <input id="qtd_\${index}" type="number" value="\${c.qtd}" style="width:60px; padding:5px; font-size:16px; font-weight:bold;">
                     </div>
+                    
                     <div style="border-left:1px solid #666; padding-left:20px;">
                         <label style="color:#00ff00;">📈 JÁ PEGARAM:</label><br>
                         <span style="font-size:24px; font-weight:bold;">\${c.totalResgates}</span>
                     </div>
                 </div>
+                
                 <div style="margin-top:10px;">
                     <button onclick="salvar(\${index})" style="padding:8px 15px; background:#00cc00; color:white; border:none; border-radius:5px; cursor:pointer;">💾 SALVAR ESTOQUE</button>
                 </div>
@@ -282,7 +288,7 @@ app.get('/mobile', (req, res) => res.send(htmlMobile));
 app.get('/', (req, res) => res.redirect('/tv'));
 app.get('/qrcode', (req, res) => { const url = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/mobile`; QRCode.toDataURL(url, (e, s) => res.send(s)); });
 
-// --- SOCKET (COM SORTEIO DOURADO) ---
+// --- SOCKET COM SORTEIO DOURADO + CONTADOR DE BANCO DE DADOS ---
 io.on('connection', (socket) => {
     socket.emit('trocar_slide', campanhas[slideAtual]);
     socket.emit('dados_admin', campanhas);
@@ -293,25 +299,21 @@ io.on('connection', (socket) => {
         let camp = campanhas[id];
         if (camp && camp.qtd > 0) {
             camp.qtd--;
-            camp.totalResgates++; // Conta +1
+            camp.totalResgates++; // AQUI SOMA NO RELATÓRIO DO ADMIN
             
             io.emit('atualizar_qtd', camp);
             if(slideAtual === id) io.emit('trocar_slide', camp);
             
-            // === SORTEIO DO CUPOM DOURADO ===
-            // Gera número entre 1 e 100
+            // SORTEIO CUPOM DOURADO
             const sorte = Math.floor(Math.random() * 100) + 1;
-            let ehGold = false;
             let cor1 = camp.corPrincipal;
             let cor2 = camp.corSecundaria;
             let nomeFinal = camp.nome;
 
-            // Se cair maior que 90 (10% de chance), vira GOLD
-            if (sorte > 90) {
-                ehGold = true;
-                cor1 = '#FFD700'; // Ouro
-                cor2 = '#B8860B'; // Dark Goldenrod
-                nomeFinal = `🌟 ${camp.nome} (50% OFF)`;
+            if (sorte > 90) { // 10% de chance
+                cor1 = '#FFD700'; // Dourado
+                cor2 = '#B8860B';
+                nomeFinal = `🌟 ${camp.nome} (SUPER OFERTA)`;
             }
 
             socket.emit('sucesso', { 
@@ -334,4 +336,3 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log('Rodando'));
-
