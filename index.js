@@ -31,7 +31,7 @@ let campanhas = [
         tipo: 'foto',
         arquivo: "slide2.jpg", 
         nome: "Special Dog",   
-        qtd: 15, 
+        qtd: 10, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#007bff', 
@@ -44,7 +44,7 @@ let campanhas = [
         tipo: 'foto',
         arquivo: "slide3.jpg", 
         nome: "Adimax",        
-        qtd: 20, 
+        qtd: 10, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#009933', 
@@ -57,7 +57,7 @@ let campanhas = [
         tipo: 'video', 
         arquivo: "nattu.mp4", 
         nome: "Premier Nattu",        
-        qtd: 30, 
+        qtd: 10, 
         totalResgates: 0,
         ativa: true, 
         corPrincipal: '#6aa84f', 
@@ -334,3 +334,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log('Rodando'));
+
